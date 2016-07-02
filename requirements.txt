@@ -1,0 +1,4 @@
+django==1.9.7
+ipython==4.2.0
+gunicorn==19.6.0
+mongoengine==0.10.6
