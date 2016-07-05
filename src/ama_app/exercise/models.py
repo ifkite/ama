@@ -2,7 +2,7 @@
 from __future__ import unicode_literals
 
 from mongoengine import DynamicDocument, IntField, StringField, ListField, EmbeddedDocument
-from ama_app.exercise.excepts import ContentExcept, AnswerNotInOptionsExcept
+from ama_app.exercise.excepts import ContentExcept, AnswerNotExistExcept
 
 import logging
 log = logging.getLogger(__file__)
@@ -18,7 +18,8 @@ class Choice(EmbeddedDocument):
                 setattr(self, k, v)
 
         if self.answer not in self.options:
-            raise AnswerNotInOptionsExcept
+            log.warning("set content failed: answer {0} not in content {1}".format(str(self.answer), str(self.options)))
+            raise AnswerNotExistExcept
 
 
 class Question(DynamicDocument):
@@ -51,7 +52,8 @@ class Question(DynamicDocument):
 
     def set_content(self, content_type, content_data):
         if content_type not in self.Q_TYPE_DICT:
-            raise ContentExcept("set content faild: content type {0} not support".format(content_type))
+            log.warning("set content faild: content type {0} not support".format(content_type))
+            raise ContentExcept
         self.type = content_type
         Content = self.Q_TYPE_DICT.get(content_type)
         content = Content()

@@ -10,5 +10,5 @@ class ChoiceExcept(Exception):
     pass
 
 
-class AnswerNotInOptionsExcept(ChoiceExcept):
+class AnswerNotExistExcept(ChoiceExcept):
     pass
