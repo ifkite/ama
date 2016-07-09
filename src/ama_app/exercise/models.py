@@ -1,9 +1,9 @@
 #! encoding=UTF-8
 from __future__ import unicode_literals
 
-from mongoengine import DynamicDocument, IntField, StringField, ListField, EmbeddedDocument
+from mongoengine import DynamicDocument, IntField, StringField, ListField, EmbeddedDocument, DateTimeField
 from ama_app.exercise.excepts import ContentExcept, AnswerNotExistExcept
-
+import datetime
 import logging
 log = logging.getLogger(__file__)
 
@@ -24,31 +24,37 @@ class Choice(EmbeddedDocument):
 
 class Question(DynamicDocument):
     CHOICE = 'CHOICE'
-    Q_TYPE = (CHOICE, 'choice')
-    Q_TYPE_DICT = {CHOICE: Choice}
+    HIDE = 'HIDE'
     EASY = 'EASY'
     MEDIUM = 'MEDIUM'
     HARD = 'HARD'
-    LEVEL= ((EASY, 'easy'),
-            (MEDIUM, 'medium'),
-            (HARD, 'hard'),
-           )
+    Q_TYPE = (CHOICE, HIDE)
+    LEVEL= (EASY, MEDIUM, HARD)
+    Q_TYPE_DICT = {CHOICE: Choice}
 
-    type = StringField(choices=Q_TYPE)
+    type = StringField(choices=Q_TYPE, default=HIDE)
     score = IntField(min_value=1, default=1)
     # content = EmbeddedDocumentField(require=True)
-    avg_time = IntField()
+    # avg_time = IntField()
     level = StringField(choices=LEVEL, default=MEDIUM)
     tag = StringField()
-    like =  IntField(min_value=0, default=0)
-    dislike =  IntField(min_value=0, default=0)
-    render_time = IntField(min_value=0, default=0)
+    # TODO:store like, dislike, render_time, avg_time in redis
+    # like =  IntField(min_value=0, default=0)
+    # dislike =  IntField(min_value=0, default=0)
+    # render_time = IntField(min_value=0, default=0)
+    rank = IntField(min_value=0, default=0)
     author = IntField()
+    create_time = DateTimeField(default=datetime.datetime.utcnow())
+    modify_time = DateTimeField(default=datetime.datetime.utcnow())
     meta = {'collection': 'question',
             'indexes':[
-                ('type', 'like', 'dislike', 'render_time')
+                ('tag', 'rank'),
+                'type',
             ],
            }
+
+    def __repr__(self):
+        return u'type<{0}> id<{0}>'.format(str(type(self)), str(self.id))
 
     def set_content(self, content_type, content_data):
         if content_type not in self.Q_TYPE_DICT:
