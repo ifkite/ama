@@ -1,6 +1,8 @@
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from ama_app.exercise.models import Question
+import ama_app.exercise.excepts as excepts
 import json
 
 
@@ -48,8 +50,13 @@ class QuestionsView(APIView):
                 #'author': request.user,
                 'tag': request.POST.get('tag'),
         }
-        data = self._set_question(params)
-        return Response(data)
+        try:
+            data = self._set_question(params)
+            return Response(data)
+        except (ValueError, excepts.AnswerNotExistExcept):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class QuestionView(APIView):
