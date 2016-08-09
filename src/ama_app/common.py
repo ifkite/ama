@@ -15,6 +15,9 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# When the app name changed
+AMA_DIR = os.path.join(BASE_DIR, 'ama_app')
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
@@ -57,7 +60,7 @@ ROOT_URLCONF = 'ama_app.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(AMA_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -72,14 +75,31 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'ama_app.wsgi.application'
 
+# Session
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+
+# set memecached host and port
+MEMCACHED_HOST = os.environ.get('MEMCAHCED_HOST', '127.0.0.1')
+MEMCACHED_PORT = os.environ.get('MEMCACHED_PORT', '11211')
+
+#Caches
+CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+            'LOCATION': '{0}:{1}'.format(MEMCACHED_HOST, MEMCACHED_PORT),
+        }
+    }
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.mysql',
+        'HOST': '127.0.0.1',
+        'NAME': 'ama',
+        'PASSWORD': '123456',
+        'USER': 'ama_admin',
     }
 }
 
