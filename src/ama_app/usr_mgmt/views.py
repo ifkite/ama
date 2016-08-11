@@ -7,7 +7,7 @@ from django.views.decorators.http import require_http_methods
 from django.shortcuts import render
 from captcha.models import CaptchaStore
 from captcha.helpers import captcha_image_url
-from ama_app.excepts import LoginExcept
+from ama_app.excepts import LoginExcept, CaptchaExcept, UserHasExist
 from ama_app.usr_mgmt.utils import LOGIN_ERR
 import logging
 
@@ -27,16 +27,19 @@ def chk_usr_exist(username):
 def register_handler(params, *args, **kwargs):
     username = params.get('username')
     password = params.get('password')
-    hashkey = params.get('hashkey')
+    captcha_hash = params.get('captcha_hash')
     code = params.get('code')
     request = kwargs.get('request')
 
-    check_captcha(hashkey, code)
+    if not chk_captcha(captcha_hash, code):
+        raise CaptchaExcept
+
     if request.user.is_authenticated():
         return redirect(reverse('home'))
+
     if chk_usr_exist(username):
-        # TODO: eliminate const num and string
-        return JsonResponse({"error_code": 400, "error_msg": "username :{0} existed".format(username)})
+        log.warning("register failed: username {0} has existed".format(username))
+        raise UserHasExist
 
     create_user(username, password)
     # login
@@ -47,6 +50,18 @@ def register_handler(params, *args, **kwargs):
     return redirect(reverse('home'))
 
 
+def register_page(request):
+    context = {"action": "register"}
+    captcha_hash = CaptchaStore.generate_key()
+    captcha_image = captcha_image_url(captcha_hash)
+    context.update({
+            "captcha_hash": captcha_hash,
+            "captcha_image": captcha_image
+    })
+
+    return render(request, "login.html", context=context)
+
+
 @require_http_methods(["GET", "POST"])
 def register(request):
     # in fact, verification and user profile are required
@@ -54,34 +69,34 @@ def register(request):
         params = {
                 "username": request.POST.get('username'),
                 "password": request.POST.get('password'),
-                "hashkey": request.POST.get('hashkey'),
+                "captcha_hash": request.POST.get('captcha_hash'),
                 "code": request.POST.get('code'),
         }
-        return register_handler(params, request=request)
+        try:
+            return register_handler(params, request=request)
+        except (CaptchaExcept, UserHasExist):
+            return register_page(request)
     else:
-        captcha_hash = CaptchaStore.generate_key()
-        captcha_image = captcha_image_url(captcha_hash)
-        context = {
-                "action": "register",
-                "captcha_hash": captcha_hash,
-                "captcha_image": captcha_image
-        }
-        return render(request, "login.html", context=context)
+        return register_page(request)
 
 
-def check_captcha(hashkey, code):
-    captcha = CaptchaStore.objects.filter(hashkey=hashkey, response=code)
-    return captcha.exists()
+def chk_captcha(hashkey, response):
+    return CaptchaStore.objects.filter(hashkey=hashkey, response=response)
+
+
+def chk_login_err(request):
+    return request.session.get('login_err') > LOGIN_ERR
 
 
 def login_handler(params, *args, **kwargs):
     username = params.get('username')
     password = params.get('password')
-    hashkey = params.get('hashkey')
+    captcha_hash = params.get('captcha_hash')
     code = params.get('code')
     request = kwargs.get('request')
 
-    check_captcha(hashkey, code)
+    if chk_login_err(request) and not chk_captcha(captcha_hash, code):
+        raise CaptchaExcept
 
     user = authenticate(username=username, password=password)
     # ignore if user is_active or not
@@ -89,7 +104,7 @@ def login_handler(params, *args, **kwargs):
         auth_login(request, user)
     except AttributeError:
         request.session['login_err'] = request.session.get('login_err', 0) + 1
-        log.warning('login failed: username{0}'.format(username))
+        log.warning('login failed: username {0}'.format(username))
         raise LoginExcept
 
     request.session['login_err'] = 0
@@ -100,8 +115,7 @@ def login_handler(params, *args, **kwargs):
 
 def login_page(request):
     context = {"action": "login"}
-    login_err = request.session.get('login_err', 0)
-    if login_err > LOGIN_ERR:
+    if chk_login_err(request):
         captcha_hash = CaptchaStore.generate_key()
         captcha_image = captcha_image_url(captcha_hash)
         context.update({
@@ -118,12 +132,12 @@ def login(request):
         params = {
                 "username": request.POST.get('username'),
                 "password": request.POST.get('password'),
-                "hashkey": request.POST.get('hashkey'),
+                "captcha_hash": request.POST.get('captcha_hash'),
                 "code": request.POST.get('code'),
         }
         try:
             return login_handler(params, request=request)
-        except LoginExcept:
+        except (LoginExcept, CaptchaExcept):
             return login_page(request)
     else:
         return login_page(request)
