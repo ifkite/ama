@@ -7,6 +7,10 @@ from django.views.decorators.http import require_http_methods
 from django.shortcuts import render
 from captcha.models import CaptchaStore
 from captcha.helpers import captcha_image_url
+from ama_app.excepts import LoginExcept
+import logging
+
+log = logging.getLogger(__file__)
 
 
 def create_user(username, password):
@@ -80,11 +84,25 @@ def login_handler(params, *args, **kwargs):
 
     user = authenticate(username=username, password=password)
     # ignore if user is_active or not
-    auth_login(request, user)
+    try:
+        auth_login(request, user)
+    except AttributeError:
+        log.warning('login failed: username{0}'.format(username))
+        raise LoginExcept
     request.session.set_expiry(0)
 
-    # redirect
     return redirect(reverse('home'))
+
+
+def login_page(request):
+    captcha_hash = CaptchaStore.generate_key()
+    captcha_image = captcha_image_url(captcha_hash)
+    context = {
+            "action": "login",
+            "captcha_hash": captcha_hash,
+            "captcha_image": captcha_image
+    }
+    return render(request, "login.html", context=context)
 
 
 @require_http_methods(["GET", "POST"])
@@ -96,13 +114,9 @@ def login(request):
                 "hashkey": request.POST.get('hashkey'),
                 "code": request.POST.get('code'),
         }
-        return login_handler(params, request=request)
+        try:
+            return login_handler(params, request=request)
+        except LoginExcept:
+            return login_page(request)
     else:
-        captcha_hash = CaptchaStore.generate_key()
-        captcha_image = captcha_image_url(captcha_hash)
-        context = {
-                "action": "login",
-                "captcha_hash": captcha_hash,
-                "captcha_image": captcha_image
-        }
-        return render(request, "login.html", context=context)
+        return login_page(request)
