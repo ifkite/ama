@@ -17,5 +17,6 @@ from django.conf.urls import url, include, patterns
 
 urlpatterns = patterns('',
     url(r'^user/', include('ama_app.usr_mgmt.urls')),
+    url(r'^captcha/', include('captcha.urls')),
     url('', include('ama_app.exercise.urls')),
 )

@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'captcha',
     'ama_app.exercise',
 ]
 
@@ -89,6 +90,9 @@ CACHES = {
             'LOCATION': '{0}:{1}'.format(MEMCACHED_HOST, MEMCACHED_PORT),
         }
     }
+
+#Auth backend
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
 
 # Database
 # https://docs.djangoproject.com/en/1.9/ref/settings/#databases
