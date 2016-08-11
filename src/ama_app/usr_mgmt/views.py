@@ -8,6 +8,7 @@ from django.shortcuts import render
 from captcha.models import CaptchaStore
 from captcha.helpers import captcha_image_url
 from ama_app.excepts import LoginExcept
+from ama_app.usr_mgmt.utils import LOGIN_ERR
 import logging
 
 log = logging.getLogger(__file__)
@@ -87,21 +88,27 @@ def login_handler(params, *args, **kwargs):
     try:
         auth_login(request, user)
     except AttributeError:
+        request.session['login_err'] = request.session.get('login_err', 0) + 1
         log.warning('login failed: username{0}'.format(username))
         raise LoginExcept
+
+    request.session['login_err'] = 0
     request.session.set_expiry(0)
 
     return redirect(reverse('home'))
 
 
 def login_page(request):
-    captcha_hash = CaptchaStore.generate_key()
-    captcha_image = captcha_image_url(captcha_hash)
-    context = {
-            "action": "login",
-            "captcha_hash": captcha_hash,
-            "captcha_image": captcha_image
-    }
+    context = {"action": "login"}
+    login_err = request.session.get('login_err', 0)
+    if login_err > LOGIN_ERR:
+        captcha_hash = CaptchaStore.generate_key()
+        captcha_image = captcha_image_url(captcha_hash)
+        context.update({
+                "captcha_hash": captcha_hash,
+                "captcha_image": captcha_image
+        })
+
     return render(request, "login.html", context=context)
 
 

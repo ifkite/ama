@@ -9,9 +9,11 @@
                 {% csrf_token %}
                 <input required class="" type="text" name="username" placeholder="用户名">
                 <input required class="" type="password" name="password" placeholder="密码">
-                <img class="captcha" src="{{captcha_image}}" alt="captcha" >
-                <input class="" type="hidden" name="captcha_hash" value="{{captcha_hash}}">
-                <input required class="" type="text" name="code" placeholder="验证码">
+                {% if captcha_hash %}
+                    <img class="captcha" src="{{captcha_image}}" alt="captcha" >
+                    <input class="" type="hidden" name="captcha_hash" value="{{captcha_hash}}">
+                    <input required class="" type="text" name="code" placeholder="验证码">
+                {% endif  %}
                 <button class="" type="submit">{{action}}</button>
             </form>
         </div>
