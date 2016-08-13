@@ -1,8 +1,7 @@
-from django.contrib.auth import login as auth_login, authenticate
+from django.contrib.auth import login as auth_login, logout as auth_logout, authenticate
 from django.contrib.auth.models import User
 from django.shortcuts import redirect
 from django.core.urlresolvers import reverse
-from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import render
 from captcha.models import CaptchaStore
@@ -141,3 +140,9 @@ def login(request):
             return login_page(request)
     else:
         return login_page(request)
+
+
+@require_http_methods(["GET", "POST"])
+def logout(request):
+    auth_logout(request)
+    return redirect(reverse('home'))
