@@ -92,6 +92,7 @@ def login_handler(params, *args, **kwargs):
     password = params.get('password')
     captcha_hash = params.get('captcha_hash')
     code = params.get('code')
+    next = params.get('next')
     request = kwargs.get('request')
 
     if chk_login_err(request) and not chk_captcha(captcha_hash, code):
@@ -109,11 +110,16 @@ def login_handler(params, *args, **kwargs):
     request.session['login_err'] = 0
     request.session.set_expiry(0)
 
-    return redirect(reverse('home'))
+    # TODO: check next, next shuold in our domain
+    try:
+        return redirect(next)
+    except:
+        return redirect(reverse('home'))
 
 
 def login_page(request):
-    context = {"action": "login"}
+    # TODO: make sure that next should in domain
+    context = {"action": "login", "next": request.GET.get('next', '')}
     if chk_login_err(request):
         captcha_hash = CaptchaStore.generate_key()
         captcha_image = captcha_image_url(captcha_hash)
@@ -121,7 +127,6 @@ def login_page(request):
                 "captcha_hash": captcha_hash,
                 "captcha_image": captcha_image
         })
-
     return render(request, "login.html", context=context)
 
 
@@ -133,6 +138,7 @@ def login(request):
                 "password": request.POST.get('password'),
                 "captcha_hash": request.POST.get('captcha_hash'),
                 "code": request.POST.get('code'),
+                "next": request.POST.get('next', '')
         }
         try:
             return login_handler(params, request=request)

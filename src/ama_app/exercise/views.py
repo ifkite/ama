@@ -1,6 +1,7 @@
 from django.shortcuts import render, render_to_response, redirect
 from django.core.urlresolvers import reverse
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 from ama_app.exercise.models import Question
 import json
 
@@ -32,6 +33,7 @@ def publish_page(request):
     return render(request, "publish.html")
 
 
+@login_required
 @require_http_methods(["GET", "POST"])
 def publish(request):
     if request.method == "POST":

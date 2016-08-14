@@ -14,6 +14,9 @@
                     <input class="" type="hidden" name="captcha_hash" value="{{captcha_hash}}">
                     <input required class="" type="text" name="code" placeholder="验证码">
                 {% endif  %}
+                {% if next %}
+                    <input type="hidden" name="next" value="{{next}}">
+                {% endif %}
                 <button class="" type="submit">{{action}}</button>
             </form>
         </div>
